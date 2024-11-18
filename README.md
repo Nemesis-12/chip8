@@ -1,2 +1,3 @@
-# chip8
-A CHIP-8 emulator
+# CHIP-8 Emulator
+
+Ongoing project | Currently undergoing a restart
