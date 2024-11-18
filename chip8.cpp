@@ -68,8 +68,8 @@ void Chip8::Emulate() {
     // Fetch opcode
     opcode = memory[pc] << 8 | memory[pc + 1];
     pc += 2;
-    uint8_t Vx = (opcode & 0x00FF) >> 8;
-    uint8_t Vy = (opcode & 0x00FF) >> 4;
+    uint8_t Vx = (opcode & 0x0F00) >> 8;
+    uint8_t Vy = (opcode & 0x00F0) >> 4;
 
     uint16_t sum = 0;
     uint8_t randByte = rand() % 256;
@@ -104,33 +104,33 @@ void Chip8::Emulate() {
 
         // 0x3XKK - Skip next instruction if Vx = KK
         case 0x3000:
-            if (Vx == (opcode & 0x00FF)) {
+            if (V[Vx] == (opcode & 0x00FF)) {
                 pc += 2;
             }
             break;
 
-        // 0x4XKK - Skip next instruction if Vx != KK
+        // 0x4XKK - Skip next instruction if V[Vx] != KK
         case 0x4000:
-            if (Vx != (opcode & 0x00FF)) {
+            if (V[Vx] != (opcode & 0x00FF)) {
                 pc += 2;
             }
             break;
 
         // 0x5XY0 - Skip next instruction if Vx = Vy
         case 0x5000:
-            if (Vx == Vy) {
+            if (V[Vx] == V[Vy]) {
                 pc += 2;
             }
             break;
 
         // 0x6XKK - Set Vx = KK
         case 0x6000:
-            Vx = (opcode & 0x00FF);
+            V[Vx] = (opcode & 0x00FF);
             break;
 
         // 0x7XKK - Set Vx = Vx + KK
         case 0x7000:
-            Vx += (opcode & 0x00FF);
+            V[Vx] += (opcode & 0x00FF);
             break;
 
         // 0x8000 instruction set
@@ -140,59 +140,59 @@ void Chip8::Emulate() {
 
                 // 0x8XY0 - Set Vx = Vy
                 case 0x0000:
-                    Vx = Vy;
+                    V[Vx] = V[Vy];
                     break;
 
                 // 0x8XY1 - Set Vx = Vx OR Vy
                 case 0x0001:
-                    Vx |= Vy;
+                    V[Vx] |= V[Vy];
                     break;
 
                 // 0x8XY2 - Set Vx = Vx AND Vy
                 case 0x0002:
-                    Vx &= Vy;
+                    V[Vx] &= V[Vy];
                     break;
                 
                 // 0x8XY3 - Set Vx = Vx XOR Vy
                 case 0x0003:
-                    Vx ^= Vy;
+                    V[Vx] ^= V[Vy];
                     break;
 
                 // 0x8XY4 - Set Vx = Vx + Vy
                 case 0x0004:
-                    sum = Vx + Vy;
+                    sum = V[Vx] + V[Vy];
                     V[0xF] = sum > 255 ? 1 : 0;
-                    Vx = sum & 0xFF;
+                    V[Vx] = sum & 0xFF;
 
                     break;
                 
                 // 0x8XY5 - Set Vx = Vx - Vy
                 case 0x0005:
-                    V[0xF] = Vx > Vy ? 1 : 0;
-                    Vx -= Vy;
+                    V[0xF] = V[Vx] > V[Vy] ? 1 : 0;
+                    V[Vx] -= V[Vy];
 
                     break;
 
                 // 0x8XY6 - Set Vx = Vx >> 1
                 case 0x0006:
                     // Save LSB
-                    V[0xF] = Vx & 0x1;
-                    Vx >>= 1;
+                    V[0xF] = V[Vx] & 0x1;
+                    V[Vx] >>= 1;
 
                     break;
                 
                 // 0x8XY7 - Set Vx = Vy - Vx
                 case 0x0007:
-                    V[0xF] = Vx < Vy ? 1 : 0;
-                    Vx = Vy - Vx;
+                    V[0xF] = V[Vx] < V[Vy] ? 1 : 0;
+                    V[Vx] = V[Vy] - V[Vx];
 
                     break;
 
                 // 0x8XYE - Set Vx = Vx << 1
                 case 0x000E:
                     // Save MSB
-                    V[0xF] = Vx >> 0x7;
-                    Vx <<= 1;
+                    V[0xF] = V[Vx] >> 0x7;
+                    V[Vx] <<= 1;
 
                     break;
             }
@@ -200,7 +200,7 @@ void Chip8::Emulate() {
 
         // 0x9XY0 - Skip next instruction if Vx != Vy
         case 0x9000:
-            if (Vx != Vy) {
+            if (V[Vx] != V[Vy]) {
                 pc += 2;
             }
             break;
@@ -212,7 +212,7 @@ void Chip8::Emulate() {
 
         // 0xCXY0 - Set Vx = random byte AND kk
         case 0xC000:
-            Vx = randByte & (opcode & 0x00FF);
+            V[Vx] = randByte & (opcode & 0x00FF);
             break;
 
         // 0xDXYN - Display n-byte sprite at location (Vx, Vy) and set
@@ -220,8 +220,6 @@ void Chip8::Emulate() {
         case 0xD000:
             uint8_t height = opcode & 0x000F;
             uint8_t sprite;
-            uint8_t x = Vx % 64;
-            uint8_t y = Vy % 32;
             // Reset before drawing
             V[0xF] = 0;
 
@@ -230,11 +228,14 @@ void Chip8::Emulate() {
 
                 for (auto j = 0; j < 8; j++) {
                     if ((sprite & (0x80 >> j)) != 0) {
-                        if (graphics[(Vx + j + ((Vy + i) * 64)) % 2048] == 1) {
+                        uint8_t x = (V[Vx] + j) % 64;
+                        uint8_t y = (V[Vy] + i) % 32;
+
+                        if (graphics[(x + (y * 64)) % 2048] == 1) {
                             V[0xF] = 1;
                         }
 
-                        graphics[(Vx + j + ((Vy + i) * 64)) % 2048] ^= 1;
+                        graphics[(x + (y * 64)) % 2048] ^= 1;
                     }
                 }
             }
@@ -243,21 +244,21 @@ void Chip8::Emulate() {
             break;
 
         // EX00
-        case 0xE000:
-            switch(opcode & 0x000F) {
+        // case 0xE000:
+        //     switch(opcode & 0x000F) {
 
-                case 0x000E:
-                    // EX9E - Skip next instruction if Vx is pressed
-                    uint8_t key = V[Vx];
+        //         case 0x000E:
+        //             // EX9E - Skip next instruction if Vx is pressed
+        //             uint8_t key = V[Vx];
 
-                    if (!keypad[key]) {
-                        pc += 2;
-                    }
+        //             if (!keypad[key]) {
+        //                 pc += 2;
+        //             }
 
-                    break;
-            }
+        //             break;
+        //     }
 
-            break;
+        //     break;
     }
 
     // Decrement timers when set
