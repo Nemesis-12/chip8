@@ -17,6 +17,7 @@ private:
     BYTE delay_timer;               // 8-bit delay timer
     BYTE sound_timer;               // 8-bit sound timer
     BYTE ptr;                       // 8-bit stack pointer
+    BYTE keypad[16];                // 8-bit keypad
 
 public:
     Chip8();
