@@ -7,7 +7,7 @@
 #include <ctime>
 
 // Font set of the emulator
-uint8_t fontset[80] =
+uint8_t fontSet[80] =
     {
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
         0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -36,13 +36,13 @@ Chip8::Chip8() {
 
     // Load font set onto memory
     for (int i = 0; i < 80; ++i) {
-        memory[i] = fontset[i];
+        memory[i] = fontSet[i];
     }
 }
 
 void Chip8::Load(char const* filename) {
     // Read game onto memory as a binary file and move pointer to the end
-    filename = "Pong (alt).ch8";
+    filename = " ";
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
 
     if (file.is_open()) {
@@ -68,8 +68,8 @@ void Chip8::Emulate() {
     // Fetch opcode
     opcode = memory[pc] << 8 | memory[pc + 1];
     pc += 2;
-    uint8_t Vx = Vx;
-    uint8_t Vy = Vy;
+    uint8_t Vx = (opcode & 0x00FF) >> 8;
+    uint8_t Vy = (opcode & 0x00FF) >> 4;
 
     uint16_t sum = 0;
     uint8_t randByte = rand() % 256;
@@ -238,6 +238,24 @@ void Chip8::Emulate() {
                     }
                 }
             }
+            pc += 2;
+
+            break;
+
+        // EX00
+        case 0xE000:
+            switch(opcode & 0x000F) {
+
+                case 0x000E:
+                    // EX9E - Skip next instruction if Vx is pressed
+                    uint8_t key = V[Vx];
+
+                    if (!keypad[key]) {
+                        pc += 2;
+                    }
+
+                    break;
+            }
 
             break;
     }
@@ -245,4 +263,9 @@ void Chip8::Emulate() {
     // Decrement timers when set
     if (delay_timer > 1) { --delay_timer; }
     if (sound_timer > 1) { --sound_timer; }
+}
+
+int main() {
+
+    return 0;
 }
