@@ -29,20 +29,24 @@ uint8_t fontSet[80] =
 
 // Initialize Chip8
 Chip8::Chip8() {
-    pc = 0x200;                 // Games are loaded at this location
-    I = 0;                      // Reset address register
-    memset(V, 0, sizeof(V));    // Set registers to zero
+    setPC(0x200);                 // Games are loaded at this location
+    setI(0);                      // Reset address register
+    
+    // Set registers to zero
+    for (int i = 0; i < 16; ++i) {
+        setV(i, 0);
+    }
+
     srand(time(NULL));
 
     // Load font set onto memory
     for (int i = 0; i < 80; ++i) {
-        memory[i] = fontSet[i];
+        setMemory(i, fontSet[i]);
     }
 }
 
 void Chip8::Load(char const* filename) {
     // Read game onto memory as a binary file and move pointer to the end
-    filename = " ";
     std::ifstream file(filename, std::ios::binary | std::ios::ate);
 
     if (file.is_open()) {
@@ -57,7 +61,7 @@ void Chip8::Load(char const* filename) {
 
         // Load game onto memory location 0x200
         for (auto i = 0; i < size; ++i) {
-            memory[pc + i] = buffer[i];
+            setMemory(getPC() + i, buffer[i]);
         }
 
         delete[] buffer;
@@ -66,204 +70,181 @@ void Chip8::Load(char const* filename) {
 
 void Chip8::Emulate() {
     // Fetch opcode
-    opcode = memory[pc] << 8 | memory[pc + 1];
-    pc += 2;
-    uint8_t Vx = (opcode & 0x0F00) >> 8;
-    uint8_t Vy = (opcode & 0x00F0) >> 4;
+    setOpcode(getMemory(getPC()) << 8 | getMemory(getPC() + 1));
+    setPC(getPC() + 2);
+
+    uint8_t Vx = (getOpcode() & 0x0F00) >> 8;
+    uint8_t Vy = (getOpcode() & 0x00F0) >> 4;
 
     uint16_t sum = 0;
     uint8_t randByte = rand() % 256;
 
     // Decode opcode
     // Check first 4 bits and decide what to do
-    switch(opcode & 0xF000) {
+    switch (getOpcode() & 0xF000) {
         case 0x0000:
             // 0x00E0 - Clear screen
-            if (opcode == 0x00E0) {
-                memset(graphics, 0, sizeof(graphics));
+            if (getOpcode() == 0x00E0) {
+                for (int y = 0; y < 32; ++y) {
+                    for (int x = 0; x < 64; ++x) {
+                        setGraphics(y, x, 0);
+                    }
+                }
             }
 
             // 0x00EE - Return from subroutine
-            else if (opcode == 0x00EE) {
-                --ptr;
-                pc = stack[ptr];
+            else if (getOpcode() == 0x00EE) {
+                setPtr(getPtr() - 1);
+                setPC(getStack(getPtr()));
             }
             break;
 
-        // 0xANNN - Jump to address
+        // 0xANNN - Set I = NNN
         case 0xA000:
-            I = opcode & 0x0FFF;
+            setI(getOpcode() & 0x0FFF);
             break;
 
-        // 0x2NNN - Call subroutine at address
+        // 0x2NNN - Call subroutine at NNN
         case 0x2000:
-            stack[ptr] = pc;
-            ++ptr;
-            pc = opcode & 0x0FFF;
+            setStack(getPtr(), getPC());
+            setPtr(getPtr() + 1);
+            setPC(getOpcode() & 0x0FFF);
             break;
 
-        // 0x3XKK - Skip next instruction if Vx = KK
+        // 0x3XKK - Skip next instruction if Vx == KK
         case 0x3000:
-            if (V[Vx] == (opcode & 0x00FF)) {
-                pc += 2;
+            if (getV(Vx) == (getOpcode() & 0x00FF)) {
+                setPC(getPC() + 2);
             }
             break;
 
-        // 0x4XKK - Skip next instruction if V[Vx] != KK
+        // 0x4XKK - Skip next instruction if Vx != KK
         case 0x4000:
-            if (V[Vx] != (opcode & 0x00FF)) {
-                pc += 2;
+            if (getV(Vx) != (getOpcode() & 0x00FF)) {
+                setPC(getPC() + 2);
             }
             break;
 
-        // 0x5XY0 - Skip next instruction if Vx = Vy
+        // 0x5XY0 - Skip next instruction if Vx == Vy
         case 0x5000:
-            if (V[Vx] == V[Vy]) {
-                pc += 2;
+            if (getV(Vx) == getV(Vy)) {
+                setPC(getPC() + 2);
             }
             break;
 
         // 0x6XKK - Set Vx = KK
         case 0x6000:
-            V[Vx] = (opcode & 0x00FF);
+            setV(Vx, getOpcode() & 0x00FF);
             break;
 
         // 0x7XKK - Set Vx = Vx + KK
         case 0x7000:
-            V[Vx] += (opcode & 0x00FF);
+            setV(Vx, getV(Vx) + (getOpcode() & 0x00FF));
             break;
 
         // 0x8000 instruction set
-        case 0x8000:
-            // Check last bits of code to determine the instruction
-            switch(opcode & 0x000F) {
+        case 0x8000: {
+            uint8_t Vx = Vx;
+            uint8_t Vy = Vy;
 
-                // 0x8XY0 - Set Vx = Vy
-                case 0x0000:
-                    V[Vx] = V[Vy];
+            switch (getOpcode() & 0x000F) {
+                case 0x0000: // Set Vx = Vy
+                    setV(Vx, getV(Vy));
                     break;
 
-                // 0x8XY1 - Set Vx = Vx OR Vy
-                case 0x0001:
-                    V[Vx] |= V[Vy];
+                case 0x0001: // Set Vx = Vx OR Vy
+                    setV(Vx, getV(Vx) | getV(Vy));
                     break;
 
-                // 0x8XY2 - Set Vx = Vx AND Vy
-                case 0x0002:
-                    V[Vx] &= V[Vy];
-                    break;
-                
-                // 0x8XY3 - Set Vx = Vx XOR Vy
-                case 0x0003:
-                    V[Vx] ^= V[Vy];
+                case 0x0002: // Set Vx = Vx AND Vy
+                    setV(Vx, getV(Vx) & getV(Vy));
                     break;
 
-                // 0x8XY4 - Set Vx = Vx + Vy
-                case 0x0004:
-                    sum = V[Vx] + V[Vy];
-                    V[0xF] = sum > 255 ? 1 : 0;
-                    V[Vx] = sum & 0xFF;
-
-                    break;
-                
-                // 0x8XY5 - Set Vx = Vx - Vy
-                case 0x0005:
-                    V[0xF] = V[Vx] > V[Vy] ? 1 : 0;
-                    V[Vx] -= V[Vy];
-
+                case 0x0003: // Set Vx = Vx XOR Vy
+                    setV(Vx, getV(Vx) ^ getV(Vy));
                     break;
 
-                // 0x8XY6 - Set Vx = Vx >> 1
-                case 0x0006:
-                    // Save LSB
-                    V[0xF] = V[Vx] & 0x1;
-                    V[Vx] >>= 1;
-
-                    break;
-                
-                // 0x8XY7 - Set Vx = Vy - Vx
-                case 0x0007:
-                    V[0xF] = V[Vx] < V[Vy] ? 1 : 0;
-                    V[Vx] = V[Vy] - V[Vx];
-
+                case 0x0004: // Set Vx = Vx + Vy, set VF = carry
+                    sum = getV(Vx) + getV(Vy);
+                    setV(0xF, sum > 255 ? 1 : 0);
+                    setV(Vx, sum & 0xFF);
                     break;
 
-                // 0x8XYE - Set Vx = Vx << 1
-                case 0x000E:
-                    // Save MSB
-                    V[0xF] = V[Vx] >> 0x7;
-                    V[Vx] <<= 1;
+                case 0x0005: // Set Vx = Vx - Vy, set VF = NOT borrow
+                    setV(0xF, getV(Vx) > getV(Vy) ? 1 : 0);
+                    setV(Vx, getV(Vx) - getV(Vy));
+                    break;
 
+                case 0x0006: // Set Vx = Vx >> 1, set VF = LSB
+                    setV(0xF, getV(Vx) & 1);
+                    setV(Vx, getV(Vx) >> 1);
+                    break;
+
+                case 0x0007: // Set Vx = Vy - Vx, set VF = NOT borrow
+                    setV(0xF, getV(Vy) > getV(Vx) ? 1 : 0);
+                    setV(Vx, getV(Vy) - getV(Vx));
+                    break;
+
+                case 0x000E: // Set Vx = Vx << 1, set VF = MSB
+                    setV(0xF, getV(Vx) >> 7);
+                    setV(Vx, getV(Vx) << 1);
                     break;
             }
             break;
+        }
 
         // 0x9XY0 - Skip next instruction if Vx != Vy
         case 0x9000:
-            if (V[Vx] != V[Vy]) {
-                pc += 2;
+            if (getV(Vx) != getV(Vy)) {
+                setPC(getPC() + 2);
             }
             break;
 
         // 0xBNNN - Jump to location NNN + V0
         case 0xB000:
-            pc = V[0] + (opcode & 0x0FFF);
+            setPC(getV(0) + (getOpcode() & 0x0FFF));
             break;
 
-        // 0xCXY0 - Set Vx = random byte AND kk
+        // 0xCXY0 - Set Vx = random byte AND KK
         case 0xC000:
-            V[Vx] = randByte & (opcode & 0x00FF);
+            setV(Vx, (rand() % 256) & (getOpcode() & 0x00FF));
             break;
 
-        // 0xDXYN - Display n-byte sprite at location (Vx, Vy) and set
-        // VF = collision
-        case 0xD000:
-            uint8_t height = opcode & 0x000F;
+        // 0xDXYN - Display n-byte sprite at location (Vx, Vy) and set VF = collision
+        case 0xD000: {
+            uint8_t height = getOpcode() & 0x000F;
             uint8_t sprite;
-            // Reset before drawing
-            V[0xF] = 0;
 
-            for (auto i = 0; i < height; i++) {
-                sprite = memory[I + i];
+            setV(0xF, 0); // Reset collision flag
 
-                for (auto j = 0; j < 8; j++) {
-                    if ((sprite & (0x80 >> j)) != 0) {
-                        uint8_t x = (V[Vx] + j) % 64;
-                        uint8_t y = (V[Vy] + i) % 32;
+            for (int i = 0; i < height; ++i) {
+                sprite = getMemory(getI() + i);
 
-                        if (graphics[(x + (y * 64)) % 2048] == 1) {
-                            V[0xF] = 1;
+                for (int j = 0; j < 8; ++j) {
+                    if (sprite & (0x80 >> j)) {
+                        int x = (getV(Vx) + j) % 64;
+                        int y = (getV(Vy) + i) % 32;
+
+                        if (getGraphics(y, x)) {
+                            setV(0xF, 1); // Collision detected
                         }
 
-                        graphics[(x + (y * 64)) % 2048] ^= 1;
+                        setGraphics(y, x, getGraphics(y, x) ^ 1); // XOR the pixel
                     }
                 }
             }
-            pc += 2;
-
+            setPC(getPC() + 2);
             break;
-
-        // EX00
-        // case 0xE000:
-        //     switch(opcode & 0x000F) {
-
-        //         case 0x000E:
-        //             // EX9E - Skip next instruction if Vx is pressed
-        //             uint8_t key = V[Vx];
-
-        //             if (!keypad[key]) {
-        //                 pc += 2;
-        //             }
-
-        //             break;
-        //     }
-
-        //     break;
+        }
     }
 
     // Decrement timers when set
-    if (delay_timer > 1) { --delay_timer; }
-    if (sound_timer > 1) { --sound_timer; }
+    if (getDelayTimer() > 0) {
+        setDelayTimer(getDelayTimer() - 1);
+    }
+    if (getSoundTimer() > 0) {
+        setSoundTimer(getSoundTimer() - 1);
+    }
 }
 
 int main() {
