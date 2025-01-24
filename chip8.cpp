@@ -33,16 +33,22 @@ Chip8::Chip8() {
     setI(0);                      // Reset address register
     
     // Set registers to zero
-    for (int i = 0; i < 16; ++i) {
-        setV(i, 0);
-    }
+    for (int i = 0; i < 16; ++i) setV(i, 0);
+    for (int i = 0; i < 4096; ++i) setMemory(i, 0);
 
-    srand(time(NULL));
+    // Initialize graphics
+    for (int y = 0; y < 32; ++y) {
+        for (int x = 0; x < 64; ++x) {
+            setGraphics(y, x, 0);
+        }
+    }
 
     // Load font set onto memory
     for (int i = 0; i < 80; ++i) {
         setMemory(i, fontSet[i]);
     }
+
+    srand(time(NULL));
 }
 
 void Chip8::Load(char const* filename) {
@@ -70,7 +76,7 @@ void Chip8::Load(char const* filename) {
 
 void Chip8::Emulate() {
     // Fetch opcode
-    setOpcode(getMemory(getPC()) << 8 | getMemory(getPC() + 1));
+    // setOpcode(getMemory(getPC()) << 8 | getMemory(getPC() + 1));
     setPC(getPC() + 2);
 
     uint8_t Vx = (getOpcode() & 0x0F00) >> 8;
@@ -144,9 +150,6 @@ void Chip8::Emulate() {
 
         // 0x8000 instruction set
         case 0x8000: {
-            uint8_t Vx = Vx;
-            uint8_t Vy = Vy;
-
             switch (getOpcode() & 0x000F) {
                 case 0x0000: // Set Vx = Vy
                     setV(Vx, getV(Vy));
@@ -247,7 +250,7 @@ void Chip8::Emulate() {
     }
 }
 
-int main() {
+// int main() {
 
-    return 0;
-}
+//     return 0;
+// }
