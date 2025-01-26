@@ -110,6 +110,11 @@ void Chip8::Emulate() {
             setI(getOpcode() & 0x0FFF);
             break;
 
+        // 0x1NNN - Set PC = NNN
+        case 0x1000:
+            setPC(getOpcode() & 0x0FFF);
+            break;
+
         // 0x2NNN - Call subroutine at NNN
         case 0x2000:
             setStack(getPtr(), getPC());
