@@ -42,3 +42,15 @@ TEST_CASE("Test Opcode 0xANNN", "[0xannn]") {
 
     REQUIRE(chip8.getI() == 0x0123);
 }
+
+TEST_CASE("Test Opcode 0x2NNN", "[0x2nnn]") {
+    Chip8 chip8;
+
+    chip8.setPtr(0);
+
+    chip8.setOpcode(0x2123);
+    chip8.Emulate();
+
+    REQUIRE(chip8.getPtr() == 1);
+    REQUIRE(chip8.getPC() == 0x0123);
+}
