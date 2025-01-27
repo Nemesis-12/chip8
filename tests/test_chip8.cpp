@@ -96,3 +96,33 @@ TEST_CASE("Test Opcode 0xBNNN", "[0xbnnn]") {
     // Check if test passed
     REQUIRE(chip8.getPC() == chip8.getV(0) + 0x0123);
 }
+
+// Test for Opcode 0x3XNN
+TEST_CASE("Test Opcode 0x3XNN", "[0x3xnn]") {
+    Chip8 chip8;
+
+    // Set test value for register
+    chip8.setV(1, 0x20);
+
+    // Set test value for opcode and emulate it
+    chip8.setOpcode(0x3120);
+    chip8.Emulate();
+
+    // Check if test passed
+    REQUIRE(chip8.getPC() == 0x204);
+}
+
+// Test for Opcode 0x4XNN
+TEST_CASE("Test Opcode 0x4XNN", "[0x4xnn]") {
+    Chip8 chip8;
+
+    // Set test value for register
+    chip8.setV(1, 0x20);
+
+    // Set test value for opcode and emulate it
+    chip8.setOpcode(0x4121); 
+    chip8.Emulate();
+
+    // Check if test passed
+    REQUIRE(chip8.getPC() == 0x204);
+}
