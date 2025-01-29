@@ -76,7 +76,10 @@ void Chip8::Load(char const* filename) {
 
 void Chip8::Emulate() {
     // Fetch opcode
-    // setOpcode(getMemory(getPC()) << 8 | getMemory(getPC() + 1));
+    #ifndef TESTING
+    setOpcode(getMemory(getPC()) << 8 | getMemory(getPC() + 1));
+    #endif
+
     setPC(getPC() + 2);
 
     uint8_t Vx = (getOpcode() & 0x0F00) >> 8;
