@@ -38,7 +38,7 @@ jobs:
 
     - name: Compile with g++
       run: |
-        g++ -std=c++17 -o chip8_tests chip8.cpp tests/test_chip8.cpp tests/catch2_amalgamated.cpp
+        g++ -std=c++17 -o chip8_tests chip8.cpp tests/test_chip8.cpp tests/catch_amalgamated.cpp
 
     - name: Run Tests
       run: ./chip8_tests
