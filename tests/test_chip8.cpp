@@ -136,7 +136,7 @@ TEST_CASE("Test Opcode 0x5XY0", "[0x5xy0]") {
     chip8.setV(2, 0x20);
 
     // Set test value for opcode and emulate it
-    chip8.setOpcode(0x5123); 
+    chip8.setOpcode(0x5120); 
     chip8.Emulate();
 
     // Check if test passed
