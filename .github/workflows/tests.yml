@@ -42,8 +42,8 @@ jobs:
 
     - name: Compile with clang++
       run: |
-        clang++ -std=c++17 -DTESTING -Ichip8/chip8 chip8/tests/catch_amalgamated.cpp chip8/tests/test_chip8.cpp chip8/chip8.cpp -o chip8/tests/chip8_tests.exe
+        clang++ -std=c++17 -DTESTING -Ichip8/chip8 tests/catch_amalgamated.cpp tests/test_chip8.cpp chip8.cpp -o tests/chip8_tests.exe
 
     - name: Run Tests
       run: |
-        ./chip8/tests/chip8_tests.exe
+        ./tests/chip8_tests.exe
