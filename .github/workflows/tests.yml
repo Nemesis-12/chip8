@@ -16,6 +16,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
+
     - name: Checkout repository
       uses: actions/checkout@v3
 
@@ -23,9 +24,10 @@ jobs:
       uses: actions/cache@v3
       with:
         path: |
-          C:\Program Files\LLVM
           ~/.cache
-        key: llvm-${{ runner.os }}-${{ hashFiles('**/ci.yml') }}
+          ~/llvm_cache
+          C:\Program Files\LLVM\bin
+        key: llvm-${{ runner.os }}-${{ hashFiles('**/tests.yml') }}
         restore-keys: |
           llvm-${{ runner.os }}-
 
@@ -36,21 +38,20 @@ jobs:
         sudo apt install -y clang
 
     - name: Install dependencies (macOS)
-      if: runner.os == 'macOS'
+      if: runner.os == 'macos-latest'
       run: |
         brew install llvm
 
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
       run: |
-        choco install llvm -y
+        if (!(Test-Path "C:\Program Files\LLVM")) { choco install llvm -y }
         echo "C:\Program Files\LLVM\bin" >> $GITHUB_PATH
         clang++ --version
 
     - name: Compile with clang++
       run: |
-        clang++ -std=c++17 -DTESTING -Ichip8/chip8 tests/catch_amalgamated.cpp tests/test_chip8.cpp chip8.cpp -o tests/chip8_tests.exe
+        clang++ -std=c++17 -DUNIT_TEST -Ichip8/chip8 chip8/tests/catch_amalgamated.cpp chip8/tests/test_chip8.cpp chip8/chip8.cpp -o chip8/tests/chip8_tests.exe
 
     - name: Run Tests
-      run: |
-        ./tests/chip8_tests.exe
+      run: ./chip8/tests/chip8_tests.exe
