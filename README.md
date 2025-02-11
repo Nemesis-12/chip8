@@ -105,7 +105,7 @@ g++ -std=c++17 -DTESTING -Ichip8/chip8 tests/catch_amalgamated.cpp tests/test_ch
 This project is open to contributions. To contribute:
 - Fork the repository.
 - Make your changes.
-- Submit a pull request with a description of your updates.
+- Submit a pull request with a description of your updates.  
 Feel free to open an issue for suggestions or bugs.
 
 ## License
